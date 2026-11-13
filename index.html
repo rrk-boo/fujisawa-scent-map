@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Fujisawa, Inhale | 藤沢 香りの記憶地図</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
+<style>
+:root{--bg:#fbf8f3;--panel:#fff;--ink:#23302f;--sub:#6b7774;--line:#e8e2d8;--accent:#1f7a8c;--soft:#e3f1f4;--shadow:0 8px 30px rgba(35,48,47,.12)}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%}
+body{font-family:"Hiragino Sans","Yu Gothic UI","Noto Sans JP",system-ui,sans-serif;color:var(--ink);background:var(--bg);overflow:hidden}
+button,input,textarea{font-family:inherit;color:inherit}
+#app{display:flex;height:100dvh}
+#side{width:390px;max-width:100%;background:var(--panel);display:flex;flex-direction:column;z-index:1000;box-shadow:var(--shadow);min-height:0}
+header{padding:22px 22px 12px}
+.eyebrow{font-size:11px;letter-spacing:.18em;color:var(--accent);font-weight:700;text-transform:uppercase}
+header h1{font-size:26px;margin:6px 0 4px;font-family:"Hiragino Mincho ProN","Yu Mincho",serif;letter-spacing:.04em}
+header p{font-size:13px;color:var(--sub);line-height:1.7}
+.view{display:none;flex:1;min-height:0;flex-direction:column}
+.view.on{display:flex}
+.chips{display:flex;gap:8px;padding:6px 22px 12px;overflow-x:auto;scrollbar-width:none;flex:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:1px solid var(--line);background:#fff;padding:7px 13px;border-radius:999px;font-size:13px;cursor:pointer;transition:.2s}
+.chip:hover{border-color:var(--accent)}
+.chip.on{background:var(--accent);border-color:var(--accent);color:#fff}
+.tools{flex-wrap:wrap;display:flex;justify-content:space-between;align-items:center;padding:0 22px 10px;font-size:12px;color:var(--sub);gap:8px;flex:none}
+.btn{border:0;border-radius:999px;padding:10px 18px;font-weight:700;font-size:14px;cursor:pointer;transition:.2s}
+.btn.primary{background:var(--accent);color:#fff}
+.btn.primary:hover{filter:brightness(1.1)}
+.btn.primary:disabled{background:#c5cfcf;cursor:not-allowed}
+.btn.ghost{background:var(--soft);color:var(--accent)}
+.btn.sm{padding:6px 12px;font-size:12px}
+#list{flex:1;overflow-y:auto;padding:4px 16px 20px;display:grid;gap:12px;align-content:start}
+.card{border:1px solid var(--line);border-radius:16px;padding:14px 16px;cursor:pointer;background:#fff;transition:.2s}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow);border-color:transparent}
+.card.active{border-color:var(--accent);background:var(--soft)}
+.tag{font-size:11px;font-weight:700;color:var(--accent)}
+.card h3{font-size:16px;margin:4px 0 6px}
+.card p{font-size:13px;color:var(--sub);line-height:1.7;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.dots{display:inline-flex;gap:3px;vertical-align:middle;margin-left:6px}
+.dots i{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dots i.f{background:var(--accent)}
+.empty{text-align:center;color:var(--sub);font-size:13px;padding:30px 10px;line-height:1.8}
+.foot{padding:10px 22px calc(10px + env(safe-area-inset-bottom));font-size:11px;color:var(--sub);border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:8px;flex:none;flex-wrap:wrap}
+.foot a,.foot button{color:inherit;background:none;border:0;font-size:11px;cursor:pointer;text-decoration:underline}
+
+/* Form */
+#form{padding:4px 22px 16px;overflow-y:auto;flex:1}
+.step{margin-bottom:18px}
+.step label.t{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;margin-bottom:8px}
+.step label.t b{width:22px;height:22px;border-radius:50%;background:var(--accent);color:#fff;font-size:12px;display:grid;place-items:center;flex:none}
+.pinbox{border:1.5px dashed var(--accent);background:var(--soft);border-radius:14px;padding:12px 14px;font-size:13px;line-height:1.7}
+.pinbox.set{border-style:solid}
+.pinbox .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px}
+input[type=text],textarea{width:100%;border:1px solid var(--line);border-radius:12px;padding:11px 13px;font-size:16px;background:#fff;outline:none;transition:.2s}
+input[type=text]:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--soft)}
+textarea{min-height:110px;resize:vertical;line-height:1.7}
+.cnt{text-align:right;font-size:11px;color:var(--sub);margin-top:3px}
+.cats{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.scale{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.scale button{aspect-ratio:1;border:1px solid var(--line);background:#fff;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;transition:.15s}
+.scale button.on{background:var(--accent);border-color:var(--accent);color:#fff;transform:scale(1.06)}
+.scale-l{display:flex;justify-content:space-between;font-size:11px;color:var(--sub);margin-top:6px}
+#lvlName{text-align:center;font-size:13px;color:var(--accent);font-weight:700;margin-top:6px;min-height:20px}
+.actions{display:flex;gap:10px;padding:12px 22px calc(14px + env(safe-area-inset-bottom));border-top:1px solid var(--line);flex:none}
+.actions .primary{flex:1}
+
+/* Map */
+#mapwrap{flex:1;position:relative;min-width:0}
+#map{position:absolute;inset:0;background:#dfe9ea}
+body.adding #map{cursor:crosshair}
+#banner{display:none;position:absolute;top:14px;left:50%;transform:translateX(-50%);z-index:900;background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;box-shadow:var(--shadow);white-space:nowrap;pointer-events:none}
+body.adding.nopin #banner{display:block}
+.pin{width:38px;height:38px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:grid;place-items:center;box-shadow:0 4px 10px rgba(0,0,0,.28);border:2px solid #fff;position:relative}
+.pin span{transform:rotate(45deg);font-size:17px}
+.pin em{position:absolute;right:-8px;bottom:-6px;transform:rotate(45deg);background:#fff;color:var(--ink);font-style:normal;font-size:10px;font-weight:800;width:16px;height:16px;border-radius:50%;display:grid;place-items:center;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.pin.ex{border-style:dashed;opacity:.8}
+.exb{display:inline-block;background:#fff3cd;color:#8a6d1a;border:1px solid #f0d98a;border-radius:6px;padding:0 6px;font-size:10px;font-weight:700;margin-right:6px}
+.pin.draft{background:var(--ink);animation:drop .35s}
+@keyframes drop{from{transform:rotate(-45deg) translateY(-30px);opacity:0}}
+.leaflet-popup-content-wrapper{border-radius:16px;box-shadow:var(--shadow);padding:0}
+.leaflet-popup-content{margin:0;width:260px!important}
+.pop{padding:16px 18px}
+.pop h3{font-size:17px;margin:4px 0 6px}
+.pop .lv{font-size:12px;color:var(--sub);margin-bottom:8px}
+.pop p{font-size:13px;line-height:1.8;color:#3d4a48;white-space:pre-wrap;word-break:break-word}
+.pop .meta{margin-top:10px;font-size:11px;color:var(--sub);display:flex;justify-content:space-between;align-items:center}
+.pop .del{border:0;background:none;color:#b5483a;font-size:11px;cursor:pointer;text-decoration:underline}
+#toggle{display:none}
+#toast{position:fixed;left:50%;bottom:24px;transform:translate(-50%,20px);background:var(--ink);color:#fff;padding:10px 18px;border-radius:999px;font-size:13px;opacity:0;transition:.3s;z-index:3000;pointer-events:none}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+
+@media (max-width:760px){
+  #app{flex-direction:column-reverse}
+  #side{width:100%;height:46dvh;border-radius:22px 22px 0 0;margin-top:-18px;transition:height .3s}
+  #side.min{height:150px}
+  body.adding #side{height:60dvh}
+  header{padding:18px 18px 8px}
+  header h1{font-size:22px}
+  header p{display:none}
+  #side.min #list,#side.min .tools,#side.min .foot{display:none}
+  #mapwrap{flex:1;min-height:0}
+  #toggle{display:block;position:absolute;top:0;left:50%;transform:translateX(-50%);width:80px;height:24px;border:0;background:none;cursor:pointer}
+  #toggle::after{content:"";display:block;width:44px;height:5px;border-radius:5px;background:var(--line);margin:10px auto 0}
+  body.adding #toggle{display:none}
+  .chips{padding:4px 18px 10px}
+  #form{padding:4px 18px 12px}
+  #banner{white-space:normal;width:max-content;max-width:88%;text-align:center}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="side">
+    <button id="toggle" aria-label="パネルを開閉"></button>
+    <header>
+      <div class="eyebrow">Fujisawa, Inhale · Scent Map</div>
+      <h1>藤沢、香りの記憶</h1>
+      <p>街のどこで、どんな香りに出会いましたか。香りに結びついた小さな物語を、地図に残していきましょう。</p>
+    </header>
+
+    <!-- 一覧ビュー -->
+    <section class="view on" id="vList">
+      <div class="chips" id="chips"></div>
+      <div class="tools"><span id="count"></span><button class="btn ghost sm" id="exBtn" title="例の表示/非表示" style="margin-left:auto">例 ON</button><button class="btn ghost sm" id="refresh" title="最新の投稿を読み込む">🔄</button><button class="btn primary sm" id="addBtn" style="padding:9px 16px;font-size:13px">📍 香りを記録する</button></div>
+      <div id="list"></div>
+      <div class="foot">
+        <span>© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a></span>
+        <span><button id="csv">CSVで保存</button></span>
+      </div>
+    </section>
+
+    <!-- 入力ビュー -->
+    <section class="view" id="vForm">
+      <div id="form">
+        <div class="step">
+          <label class="t"><b>1</b>場所をピンしてください</label>
+          <div class="pinbox" id="pinbox">地図をタップすると、ピンが立ちます。<br>ドラッグで位置を微調整できます。
+            <div class="row"><span id="coord" style="color:var(--sub);font-size:12px">未選択</span><button class="btn ghost sm" id="locBtn" type="button">現在地を使う</button></div>
+          </div>
+        </div>
+        <div class="step">
+          <label class="t" for="scent"><b>2</b>どんな香りがしましたか？</label>
+          <input type="text" id="scent" maxlength="40" placeholder="例：雨上がりの土の匂い、潮風、池の水草" autocomplete="off">
+          <div class="cats" id="catPick"></div>
+        </div>
+        <div class="step">
+          <label class="t"><b>3</b>香りの強さ</label>
+          <div class="scale" id="scale"></div>
+          <div class="scale-l"><span>ほのか</span><span>とても強い</span></div>
+          <div id="lvlName"></div>
+        </div>
+        <div class="step">
+          <label class="t" for="story"><b>4</b>どんなストーリーを思い浮かべましたか？</label>
+          <textarea id="story" maxlength="400" placeholder="例：カニが雨に降られてぐるぐる回っていた／砂浜で貝殻を拾っていたら魚が見えて気分が上がった"></textarea>
+          <div class="cnt"><span id="sc">0</span> / 400</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="btn ghost" id="cancel" type="button">キャンセル</button>
+        <button class="btn primary" id="save" type="button" disabled>この香りを残す</button>
+      </div>
+    </section>
+  </aside>
+  <main id="mapwrap"><div id="map"></div><div id="banner">① 地図をタップして、場所にピンを立てましょう</div></main>
+</div>
+<div id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script>
+const CATS = {
+  river:{label:"川",icon:"🏞️",color:"#3a86b5"},
+  sea:{label:"海",icon:"🌊",color:"#1f7a8c"},
+  pond:{label:"池",icon:"💧",color:"#4aa3a2"},
+  tree:{label:"木",icon:"🌳",color:"#4f8a5b"},
+  forest:{label:"森林",icon:"🌲",color:"#2f6b4f"},
+  flower:{label:"花",icon:"🌸",color:"#d9718f"},
+  grass:{label:"草",icon:"🌿",color:"#8aa83c"},
+  soil:{label:"土",icon:"🟤",color:"#8a6d54"},
+  rain:{label:"雨",icon:"☔",color:"#6c8ebf"},
+  other:{label:"その他",icon:"✨",color:"#9a6fb0"}
+};
+// 旧カテゴリで保存済みのデータの読み替え
+const LEGACY={earth:"soil",food:"other",city:"other"};
+const LEVELS = ["ほのか","かすか","やや弱い","ふつう","やや強い","強い","とても強い"];
+
+// 例（サンプル）データ。地図上では「例」バッジ付きで表示され、CSVでも区分「例」になります
+const SAMPLES = [
+  {id:"s1",lat:35.2996,lng:139.4806,scent:"潮風と波しぶき",cat:"sea",level:6,story:"砂浜で貝殻を拾っていたら、透き通った水の中に魚が見えて気分が上がった。",t:0},
+  {id:"s2",lat:35.2987,lng:139.4870,scent:"雨粒が砂に落ちる匂い",cat:"rain",level:4,story:"カニが雨に降られて、あわてたようにぐるぐる回っていた。思わず笑ってしまった。",t:0},
+  {id:"s3",lat:35.3612,lng:139.4620,scent:"湿った森の空気",cat:"forest",level:5,story:"木漏れ日の中を歩いていたら、小さい頃のかくれんぼを思い出した。",t:0},
+  {id:"s4",lat:35.3335,lng:139.4875,scent:"夕方の川面の匂い",cat:"river",level:3,story:"橋の上で立ち止まって、サギがじっと水面を見ているのを眺めていた。",t:0},
+  {id:"s5",lat:35.3500,lng:139.4650,scent:"池の水草と土の匂い",cat:"pond",level:3,story:"カルガモの親子がぞろぞろ泳いでいて、夏休みの午後を思い出した。",t:0},
+  {id:"s6",lat:35.3394,lng:139.4789,scent:"桜の葉のほのかな甘さ",cat:"tree",level:2,story:"花が散ったあとの木の下で、卒業式の朝のことをふと思い出した。",t:0},
+  {id:"s7",lat:35.3140,lng:139.4800,scent:"金木犀の甘い香り",cat:"flower",level:6,story:"帰り道で急に香ってきて、どこに咲いているのか探して遠回りした。",t:0},
+  {id:"s8",lat:35.3228,lng:139.4468,scent:"刈りたての芝生",cat:"grass",level:4,story:"寝転ぶと草の青い匂いと潮風が混ざって、時間がゆっくり流れた。",t:0},
+  {id:"s9",lat:35.3700,lng:139.4500,scent:"畑の土の匂い",cat:"soil",level:5,story:"雨のあと、祖母の畑で土をいじっていた手の感触を思い出した。",t:0}
+];
+
+// ★ Google Apps Script のウェブアプリURL（…/exec）を貼ると、全員の投稿が1つの地図に共有されます。
+//   空欄のままなら、この端末だけのローカルモード（サンプル表示）で動きます。
+const ENDPOINT = "";
+
+SAMPLES.forEach(e=>e.sample=true);
+let showEx=true;
+const KEY="fujisawa-scent-map-v1", KEYT="fujisawa-scent-map-tokens";
+let mine=[],remote=[],tokens={};
+try{mine=JSON.parse(localStorage.getItem(KEY)||"[]").map(e=>({...e,cat:LEGACY[e.cat]||e.cat}))}catch(e){}
+try{tokens=JSON.parse(localStorage.getItem(KEYT)||"{}")}catch(e){}
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(mine));localStorage.setItem(KEYT,JSON.stringify(tokens))}catch(e){}};
+// 外部から来たデータは必ず検証・整形してから使う
+const norm=e=>{const lat=+e.lat,lng=+e.lng;if(!isFinite(lat)||!isFinite(lng))return null;
+  return{id:String(e.id),lat,lng,scent:String(e.scent||"").slice(0,40),cat:CATS[LEGACY[e.cat]||e.cat]?(LEGACY[e.cat]||e.cat):"other",
+    level:Math.min(7,Math.max(1,Math.round(+e.level)||1)),story:String(e.story||"").slice(0,400),t:+e.t||0}};
+const all=()=>[...(showEx?SAMPLES:[]),...(ENDPOINT?remote:mine)];
+const isOwn=e=>ENDPOINT?!!tokens[e.id]:String(e.id).startsWith("u");
+async function load(quiet){
+  if(!ENDPOINT)return false;
+  try{
+    const j=await (await fetch(ENDPOINT)).json();
+    const next=(j.items||[]).map(norm).filter(Boolean);
+    const changed=JSON.stringify(next)!==JSON.stringify(remote);
+    remote=next;if(changed||!quiet)render();
+    if(!quiet)toast("最新の状態に更新しました");
+    return true;
+  }catch(err){toast("読み込みに失敗しました");return false}
+}
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const $=id=>document.getElementById(id);
+const dots=n=>`<span class="dots">${[1,2,3,4,5,6,7].map(i=>`<i class="${i<=n?"f":""}"></i>`).join("")}</span>`;
+const toast=m=>{const t=$("toast");t.textContent=m;t.classList.add("on");setTimeout(()=>t.classList.remove("on"),2200)};
+
+/* ---- Map ---- */
+const map=L.map("map",{zoomControl:false}).setView([35.320,139.475],13);
+L.control.zoom({position:"topright"}).addTo(map);
+const osm=L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'});
+const gsi=L.tileLayer("https://cyberjapandata.gsi.go.jp/xyz/std/{z}/{x}/{y}.png",{maxZoom:18,attribution:'<a href="https://maps.gsi.go.jp/development/ichiran.html">国土地理院</a>'});
+// ファイルを直接開いた時(file://)はOSMが403で拒否するため、国土地理院タイルを初期表示にする
+(location.protocol==="file:"?gsi:osm).addTo(map);
+L.control.layers({"OpenStreetMap":osm,"国土地理院":gsi},null,{position:"topright",collapsed:true}).addTo(map);
+const layer=L.layerGroup().addTo(map);
+let filter="all",active=null,markers={};
+
+function mkIcon(e){const c=CATS[e.cat];return L.divIcon({className:"",iconSize:[38,38],iconAnchor:[19,38],popupAnchor:[0,-34],
+  html:`<div class="pin${e.sample?" ex":""}" style="background:${c.color}"><span>${c.icon}</span><em>${e.level}</em></div>`})}
+function popup(e){const c=CATS[e.cat];const own=isOwn(e);
+  return `<div class="pop"><div class="tag">${e.sample?'<span class="exb">例</span>':""}${c.icon} ${c.label}</div><h3>${esc(e.scent)}</h3>
+  <div class="lv">強さ ${e.level}/7（${LEVELS[e.level-1]}）${dots(e.level)}</div>
+  <p>${esc(e.story||"（ストーリーなし）")}</p>
+  <div class="meta"><span>${e.sample?"例（サンプル）":(e.t?new Date(e.t).toLocaleDateString("ja-JP"):"")}</span>${own?`<button class="del" onclick="delEntry('${e.id}')">削除</button>`:""}</div></div>`}
+
+function render(){
+  layer.clearLayers();markers={};$("list").innerHTML="";
+  const vis=all().filter(e=>filter==="all"||e.cat===filter);
+  vis.slice().reverse().forEach(e=>{
+    const m=L.marker([e.lat,e.lng],{icon:mkIcon(e),title:e.scent}).bindPopup(popup(e),{maxWidth:280,autoPanPadding:[30,30]});
+    m.on("click",()=>setActive(e.id));layer.addLayer(m);markers[e.id]=m;
+    const c=CATS[e.cat],el=document.createElement("div");
+    el.className="card"+(e.id===active?" active":"");el.dataset.id=e.id;
+    el.innerHTML=`<div class="tag">${e.sample?'<span class="exb">例</span>':""}${c.icon} ${c.label}${dots(e.level)}</div><h3>${esc(e.scent)}</h3><p>${esc(e.story||"")}</p>`;
+    el.onclick=()=>focusEntry(e.id);$("list").appendChild(el);
+  });
+  if(!vis.length)$("list").innerHTML='<div class="empty">まだ記録がありません。<br>「香りを記録する」から最初の一件を残しましょう。</div>';
+  const ex=vis.filter(e=>e.sample).length;
+  $("count").textContent=`${vis.length-ex} 件の投稿${ex?` ＋ 例 ${ex}`:""}${ENDPOINT?"":" · この端末のみ"}`;
+}
+function renderChips(){
+  const items=[["all","すべて"],...Object.entries(CATS).map(([k,v])=>[k,`${v.icon} ${v.label}`])];
+  $("chips").innerHTML=items.map(([k,l])=>`<button class="chip ${k===filter?"on":""}" data-k="${k}">${l}</button>`).join("");
+}
+function setActive(id){active=id;document.querySelectorAll(".card").forEach(c=>c.classList.toggle("active",c.dataset.id===id));
+  const a=document.querySelector(`.card[data-id="${id}"]`);if(a)a.scrollIntoView({block:"nearest",behavior:"smooth"})}
+function focusEntry(id){const e=all().find(x=>x.id===id);if(!e)return;
+  if(innerWidth<=760)$("side").classList.add("min");
+  map.flyTo([e.lat,e.lng],Math.max(map.getZoom(),15),{duration:.8});
+  map.once("moveend",()=>markers[id]&&markers[id].openPopup());setActive(id)}
+window.delEntry=async id=>{
+  if(!confirm("この記録を削除しますか？"))return;
+  if(ENDPOINT){
+    try{const j=await (await fetch(ENDPOINT,{method:"POST",body:JSON.stringify({action:"delete",id,token:tokens[id]})})).json();
+      if(!j.ok)throw 0;remote=remote.filter(e=>e.id!==id);delete tokens[id];save();
+    }catch(err){return toast("削除に失敗しました")}
+  }else{mine=mine.filter(e=>e.id!==id);save()}
+  map.closePopup();render();toast("削除しました");
+};
+
+$("chips").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;
+  filter=b.dataset.k;renderChips();render();
+  const pts=all().filter(x=>filter==="all"||x.cat===filter).map(x=>[x.lat,x.lng]);
+  if(pts.length)map.flyToBounds(pts,{padding:[60,60],maxZoom:15,duration:.8})});
+map.on("popupclose",()=>{active=null;document.querySelectorAll(".card.active").forEach(c=>c.classList.remove("active"))});
+
+/* ---- 入力フロー ---- */
+let draft={lat:null,lng:null,cat:null,level:null},tmp=null,adding=false;
+$("catPick").innerHTML=Object.entries(CATS).map(([k,v])=>`<button type="button" class="chip" data-k="${k}">${v.icon} ${v.label}</button>`).join("");
+$("scale").innerHTML=LEVELS.map((_,i)=>`<button type="button" data-v="${i+1}" aria-label="${i+1}">${i+1}</button>`).join("");
+
+function setPos(lat,lng){
+  draft.lat=lat;draft.lng=lng;
+  if(!tmp){
+    tmp=L.marker([lat,lng],{draggable:true,icon:L.divIcon({className:"",iconSize:[38,38],iconAnchor:[19,38],html:'<div class="pin draft"><span>📍</span></div>'})}).addTo(map);
+    tmp.on("dragend",()=>{const p=tmp.getLatLng();setPos(p.lat,p.lng)});
+  }else tmp.setLatLng([lat,lng]);
+  $("coord").textContent=`${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  $("pinbox").classList.add("set");document.body.classList.remove("nopin");validate();
+}
+function validate(){$("save").disabled=!(draft.lat!==null&&$("scent").value.trim()&&draft.cat&&draft.level)}
+function startAdd(){
+  adding=true;document.body.classList.add("adding","nopin");
+  $("side").classList.remove("min");$("vList").classList.remove("on");$("vForm").classList.add("on");
+  map.closePopup();setTimeout(()=>map.invalidateSize(),320);
+}
+function endAdd(){
+  adding=false;document.body.classList.remove("adding","nopin");
+  if(tmp){map.removeLayer(tmp);tmp=null}
+  draft={lat:null,lng:null,cat:null,level:null};
+  $("scent").value="";$("story").value="";$("sc").textContent="0";$("coord").textContent="未選択";$("pinbox").classList.remove("set");
+  $("lvlName").textContent="";
+  document.querySelectorAll("#catPick .chip,#scale button").forEach(b=>b.classList.remove("on"));
+  $("save").disabled=true;$("vForm").classList.remove("on");$("vList").classList.add("on");
+  setTimeout(()=>map.invalidateSize(),320);
+}
+map.on("click",e=>{if(adding)setPos(e.latlng.lat,e.latlng.lng)});
+$("addBtn").onclick=startAdd;$("cancel").onclick=endAdd;
+$("locBtn").onclick=()=>{
+  if(!navigator.geolocation)return toast("位置情報が利用できません");
+  navigator.geolocation.getCurrentPosition(p=>{setPos(p.coords.latitude,p.coords.longitude);map.flyTo([p.coords.latitude,p.coords.longitude],16)},()=>toast("現在地を取得できませんでした"),{enableHighAccuracy:true,timeout:8000});
+};
+$("catPick").addEventListener("click",e=>{const b=e.target.closest(".chip");if(!b)return;
+  draft.cat=b.dataset.k;document.querySelectorAll("#catPick .chip").forEach(x=>x.classList.toggle("on",x===b));validate()});
+$("scale").addEventListener("click",e=>{const b=e.target.closest("button");if(!b)return;
+  draft.level=+b.dataset.v;document.querySelectorAll("#scale button").forEach(x=>x.classList.toggle("on",x===b));
+  $("lvlName").textContent=LEVELS[draft.level-1];validate()});
+$("scent").addEventListener("input",validate);
+$("story").addEventListener("input",e=>$("sc").textContent=e.target.value.length);
+$("save").onclick=async()=>{
+  const body={action:"add",hp:"",lat:draft.lat,lng:draft.lng,scent:$("scent").value.trim(),cat:draft.cat,level:draft.level,story:$("story").value.trim()};
+  let e;
+  if(ENDPOINT){
+    body.token=(crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2)+Date.now().toString(36));
+    const btn=$("save");btn.disabled=true;btn.textContent="送信中…";
+    try{
+      const j=await (await fetch(ENDPOINT,{method:"POST",body:JSON.stringify(body)})).json();
+      if(!j.ok)throw 0;
+      e=norm({...body,id:j.id,t:Date.now()});tokens[e.id]=body.token;remote.push(e);save();
+    }catch(err){btn.textContent="この香りを残す";validate();return toast("送信に失敗しました。もう一度お試しください")}
+    btn.textContent="この香りを残す";
+  }else{
+    e={...body,id:"u"+Date.now(),t:Date.now()};mine.push(e);save();
+  }
+  endAdd();filter="all";renderChips();render();toast("香りを記録しました 🌿");
+  setTimeout(()=>focusEntry(e.id),350);
+};
+
+/* ---- その他 ---- */
+$("toggle").onclick=()=>{$("side").classList.toggle("min");setTimeout(()=>map.invalidateSize(),320)};
+$("csv").onclick=()=>{
+  const q=s=>`"${String(s).replace(/"/g,'""')}"`;
+  const rows=[["区分","緯度","経度","香り","カテゴリ","強さ(1-7)","ストーリー","日時"],...[...SAMPLES,...(ENDPOINT?remote:mine)].map(e=>[e.sample?"例":"投稿",e.lat,e.lng,e.scent,CATS[e.cat].label,e.level,e.story||"",e.t?new Date(e.t).toISOString():""])];
+  const blob=new Blob(["\ufeff"+rows.map(r=>r.map(q).join(",")).join("\n")],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="fujisawa-scent-map.csv";a.click();URL.revokeObjectURL(a.href);
+};
+const fit=()=>{const p=all().map(e=>[e.lat,e.lng]);if(p.length)map.fitBounds(p,{padding:[50,50],maxZoom:15})};
+$("refresh").onclick=()=>load(false);
+$("exBtn").onclick=()=>{showEx=!showEx;$("exBtn").textContent=showEx?"例 ON":"例 OFF";render()};
+renderChips();
+if(ENDPOINT){
+  $("list").innerHTML='<div class="empty">みんなの香りを読み込み中…</div>';
+  load(true).then(ok=>{if(ok)fit();else render()});
+  setInterval(()=>{if(!adding&&!document.hidden)load(true)},60000);
+}else{render();fit()}
+</script>
+</body>
+</html>
